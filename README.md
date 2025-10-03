@@ -10,7 +10,7 @@ An intelligent course recommendation system for Johns Hopkins University student
 
 ## Demo
 
-![Demo][demo.gif]
+![Demo](demo.gif)
 
 ## Features
 
