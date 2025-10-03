@@ -81,8 +81,8 @@ Then ask Claude questions like:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/blindTissue/claude_slop.git
-   cd claude_slop
+   git clone https://github.com/blindTissue/JHU_Course_Recommender.git
+   cd JHU_Course_Recommender
    ```
 
 2. **Install dependencies with uv**
@@ -194,7 +194,7 @@ This will:
 ## Project Structure
 
 ```
-claude_slop/
+JHU_Course_Recommender/
 ├── app.py                      # Flask web application (main entry point)
 ├── course_recommender.py       # Hybrid recommender (BM25 + embeddings)
 ├── bm25_retrieval.py          # BM25 keyword search module
