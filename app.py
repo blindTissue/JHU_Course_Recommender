@@ -1,16 +1,20 @@
 """
 Flask web application for JHU Course Recommender.
 """
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, Response, stream_with_context
 import json
 import os
 from dotenv import load_dotenv
 from course_recommender import CourseRecommender
+from anthropic import Anthropic
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
 
 app = Flask(__name__)
+
+# Initialize Anthropic client
+anthropic_client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
 
 # Initialize recommender (load once at startup)
 print("Loading course data...")
@@ -89,7 +93,6 @@ def recommend():
                 'level': course.get('Level', 'N/A'),
                 'credits': course.get('Credits', 'N/A'),
                 'description': course.get('Description', 'No description available'),
-                'prerequisites': [p.get('Description', '') for p in course.get('Prerequisites', []) if isinstance(p, dict)],
                 'status': course.get('Status', 'N/A'),
                 'seats': course.get('SeatsAvailable', 'N/A'),
                 'meetings': course.get('Meetings', 'N/A'),
@@ -104,6 +107,88 @@ def recommend():
             'results': formatted_results,
             'count': len(formatted_results)
         })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    """
+    Get AI-powered insights about recommended courses.
+
+    Expected JSON payload:
+    {
+        "user_query": "I want to learn machine learning",
+        "courses": [...],  // Array of course objects
+        "message": "Tell me more about these courses"  // Optional
+    }
+    """
+    try:
+        data = request.get_json()
+
+        user_query = data.get('user_query', '')
+        courses = data.get('courses', [])
+        user_message = data.get('message', '')
+
+        if not courses:
+            return jsonify({'error': 'No courses provided'}), 400
+
+        # Build context from courses
+        course_context = []
+        for i, course in enumerate(courses[:10], 1):  # Limit to top 10 for context length
+            course_info = f"""
+Course {i}: {course.get('title')} ({course.get('offering_name')})
+- Department: {course.get('department')}
+- Level: {course.get('level')}
+- Instructor: {course.get('instructor')}
+- Credits: {course.get('credits')}
+- Description: {course.get('description', '')[:300]}...
+- Prerequisites: {course.get('prerequisites', ['None'])[0] if course.get('prerequisites') else 'None'}
+- Match Score: {course.get('combined_score', 0):.3f}
+"""
+            course_context.append(course_info.strip())
+
+        # Construct prompt for Claude
+        system_prompt = """You are a helpful academic advisor for Johns Hopkins University.
+Your role is to help students understand course recommendations and make informed decisions about their academic path.
+Provide personalized, insightful summaries that highlight:
+1. Key themes across recommended courses
+2. How courses align with the student's interests
+3. Suggested learning paths or course sequences
+4. Important prerequisites or preparation needed
+5. Career or academic opportunities these courses might open
+
+Be conversational, encouraging, and specific. Reference actual course details."""
+
+        user_prompt = f"""The student is interested in: "{user_query}"
+
+Here are the top recommended courses based on their interests:
+
+{chr(10).join(course_context)}
+
+{f'Student question: {user_message}' if user_message else 'Please provide a helpful summary and overview of these course recommendations, explaining why they match the student interests and suggesting which courses to prioritize.'}"""
+
+        # Stream response from Claude API
+        def generate():
+            try:
+                with anthropic_client.messages.stream(
+                    model="claude-sonnet-4-5",
+                    max_tokens=1024,
+                    temperature=0.7,
+                    system=system_prompt,
+                    messages=[
+                        {"role": "user", "content": user_prompt}
+                    ]
+                ) as stream:
+                    for text in stream.text_stream:
+                        yield f"data: {json.dumps({'text': text})}\n\n"
+
+                yield f"data: {json.dumps({'done': True})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+        return Response(stream_with_context(generate()), mimetype='text/event-stream')
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500

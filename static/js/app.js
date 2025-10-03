@@ -1,12 +1,20 @@
 // Course Recommender Frontend Logic
 
+let currentResults = [];
+let currentQuery = '';
+
 document.addEventListener('DOMContentLoaded', function() {
     const searchBtn = document.getElementById('search-btn');
     const queryInput = document.getElementById('query');
     const loadingDiv = document.getElementById('loading');
     const resultsDiv = document.getElementById('results');
+    const chatSendBtn = document.getElementById('chat-send-btn');
+    const getSummaryBtn = document.getElementById('get-summary-btn');
+    const chatInput = document.getElementById('chat-input');
 
     searchBtn.addEventListener('click', performSearch);
+    chatSendBtn.addEventListener('click', sendChatMessage);
+    getSummaryBtn.addEventListener('click', getSummary);
 
     // Allow Enter key in textarea (Ctrl+Enter to submit)
     queryInput.addEventListener('keydown', function(e) {
@@ -56,7 +64,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
 
             if (data.success) {
+                currentResults = data.results;
+                currentQuery = query;
                 displayResults(data.results);
+
+                // Show chatbot section
+                document.getElementById('chatbot-section').style.display = 'block';
+                document.getElementById('chat-messages').innerHTML = '';
             } else {
                 alert('Error: ' + (data.error || 'Unknown error occurred'));
             }
@@ -66,6 +80,143 @@ document.addEventListener('DOMContentLoaded', function() {
         } finally {
             loadingDiv.style.display = 'none';
             searchBtn.disabled = false;
+        }
+    }
+
+    function convertMarkdownToHTML(markdown) {
+        let html = markdown;
+
+        // Headers
+        html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+        html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+        html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+        // Bold
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+        // Italic
+        html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+        // Lists
+        html = html.replace(/^\* (.*$)/gim, '<li>$1</li>');
+        html = html.replace(/^- (.*$)/gim, '<li>$1</li>');
+        html = html.replace(/^\d+\. (.*$)/gim, '<li>$1</li>');
+
+        // Wrap consecutive list items in ul/ol tags
+        html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+
+        // Line breaks
+        html = html.replace(/\n\n/g, '</p><p>');
+        html = html.replace(/\n/g, '<br>');
+
+        // Wrap in paragraph if not already wrapped
+        if (!html.startsWith('<')) {
+            html = '<p>' + html + '</p>';
+        }
+
+        return html;
+    }
+
+    async function sendChatMessage() {
+        const chatInput = document.getElementById('chat-input');
+        const message = chatInput.value.trim();
+
+        if (!message) {
+            alert('Please enter a question');
+            return;
+        }
+
+        await sendToClaude(message);
+        chatInput.value = '';
+    }
+
+    async function getSummary() {
+        await sendToClaude('');
+    }
+
+    async function sendToClaude(userMessage) {
+        const chatMessages = document.getElementById('chat-messages');
+        const chatSendBtn = document.getElementById('chat-send-btn');
+        const getSummaryBtn = document.getElementById('get-summary-btn');
+
+        // Add user message if provided
+        if (userMessage) {
+            const userMsgDiv = document.createElement('div');
+            userMsgDiv.className = 'chat-message user';
+            userMsgDiv.textContent = userMessage;
+            chatMessages.appendChild(userMsgDiv);
+        }
+
+        // Create assistant message container for streaming
+        const assistantMsgDiv = document.createElement('div');
+        assistantMsgDiv.className = 'chat-message assistant';
+        assistantMsgDiv.textContent = '▋'; // Show typing cursor
+        chatMessages.appendChild(assistantMsgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        chatSendBtn.disabled = true;
+        getSummaryBtn.disabled = true;
+
+        let fullResponse = '';
+
+        try {
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_query: currentQuery,
+                    courses: currentResults,
+                    message: userMessage
+                })
+            });
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const {done, value} = await reader.read();
+
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+
+                            if (data.error) {
+                                assistantMsgDiv.textContent = 'Error: ' + data.error;
+                                break;
+                            }
+
+                            if (data.text) {
+                                fullResponse += data.text;
+                                assistantMsgDiv.innerHTML = convertMarkdownToHTML(fullResponse) + '<span class="cursor">▋</span>';
+                                chatMessages.scrollTop = chatMessages.scrollHeight;
+                            }
+
+                            if (data.done) {
+                                // Remove cursor when done
+                                assistantMsgDiv.innerHTML = convertMarkdownToHTML(fullResponse);
+                            }
+                        } catch (e) {
+                            // Skip invalid JSON
+                        }
+                    }
+                }
+            }
+
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        } catch (error) {
+            console.error('Error:', error);
+            assistantMsgDiv.textContent = 'Failed to get response from Claude. Please try again.';
+        } finally {
+            chatSendBtn.disabled = false;
+            getSummaryBtn.disabled = false;
         }
     }
 
@@ -82,13 +233,6 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
 
         results.forEach((course, index) => {
-            const prerequisites = course.prerequisites && course.prerequisites.length > 0
-                ? `<div class="prerequisites">
-                     <strong>Prerequisites:</strong>
-                     <p>${course.prerequisites[0]}</p>
-                   </div>`
-                : '';
-
             html += `
                 <div class="course-card">
                     <div class="course-header">
@@ -131,8 +275,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="course-description">
                         ${course.description}
                     </div>
-
-                    ${prerequisites}
 
                     <div class="score-breakdown">
                         <span>🔍 BM25: ${course.bm25_score.toFixed(3)}</span>

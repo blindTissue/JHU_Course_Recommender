@@ -80,6 +80,26 @@
             </div>
 
             <div id="results" class="results"></div>
+
+            <!-- AI Chatbot Section -->
+            <div id="chatbot-section" class="chatbot-section" style="display: none;">
+                <div class="chatbot-header">
+                    <h3>💬 Ask Claude About Your Recommendations</h3>
+                    <p>Get personalized insights and advice about these courses</p>
+                </div>
+
+                <div id="chat-messages" class="chat-messages"></div>
+
+                <div class="chat-input-container">
+                    <textarea
+                        id="chat-input"
+                        placeholder="Ask a question about these courses... (e.g., 'Which course should I take first?')"
+                        rows="2"
+                    ></textarea>
+                    <button id="chat-send-btn" class="chat-send-btn">Send</button>
+                    <button id="get-summary-btn" class="get-summary-btn">Get AI Summary</button>
+                </div>
+            </div>
         </main>
 
         <footer>

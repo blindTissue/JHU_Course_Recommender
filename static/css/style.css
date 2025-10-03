@@ -265,6 +265,127 @@ main {
     border-radius: 5px;
 }
 
+/* Chatbot Section */
+.chatbot-section {
+    margin-top: 40px;
+    background: #f0f7ff;
+    border-radius: 15px;
+    padding: 30px;
+    border: 2px solid #667eea;
+}
+
+.chatbot-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.chatbot-header h3 {
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.chatbot-header p {
+    color: #666;
+    font-size: 0.95rem;
+}
+
+.chat-messages {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: white;
+    border-radius: 10px;
+}
+
+.chat-message {
+    margin-bottom: 15px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    line-height: 1.6;
+}
+
+.chat-message.user {
+    background: #667eea;
+    color: white;
+    margin-left: 20%;
+    text-align: right;
+}
+
+.chat-message.assistant {
+    background: #f8f9fa;
+    color: #333;
+    margin-right: 20%;
+    border-left: 3px solid #667eea;
+}
+
+.chat-message.loading {
+    background: #f8f9fa;
+    color: #666;
+    font-style: italic;
+    margin-right: 20%;
+}
+
+.chat-input-container {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+#chat-input {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    resize: vertical;
+}
+
+#chat-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.chat-send-btn, .get-summary-btn {
+    padding: 12px 24px;
+    font-weight: 600;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s;
+    white-space: nowrap;
+}
+
+.chat-send-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.get-summary-btn {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.chat-send-btn:hover, .get-summary-btn:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+.chat-send-btn:disabled, .get-summary-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.cursor {
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+
 footer {
     text-align: center;
     color: white;
