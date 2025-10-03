@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JHU Course Recommender</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎓 JHU Course Recommender</h1>
+            <p class="subtitle">Find your perfect courses for Fall 2025</p>
+        </header>
+
+        <main>
+            <div class="search-section">
+                <div class="search-box">
+                    <label for="query">What would you like to learn?</label>
+                    <textarea
+                        id="query"
+                        placeholder="e.g., I want to learn machine learning, neural networks, and AI applications..."
+                        rows="3"
+                    ></textarea>
+                </div>
+
+                <div class="filters">
+                    <h3>Filters (Optional)</h3>
+                    <div class="filter-grid">
+                        <div class="filter-item">
+                            <label for="school">School</label>
+                            <select id="school">
+                                <option value="">All Schools</option>
+                                {% for school in schools %}
+                                <option value="{{ school }}">{{ school }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="filter-item">
+                            <label for="department">Department</label>
+                            <select id="department">
+                                <option value="">All Departments</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept }}">{{ dept }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="filter-item">
+                            <label for="level">Level</label>
+                            <select id="level">
+                                <option value="">All Levels</option>
+                                {% for lvl in levels %}
+                                <option value="{{ lvl }}">{{ lvl }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="filter-item">
+                            <label for="top_k">Number of Results</label>
+                            <select id="top_k">
+                                <option value="5">5</option>
+                                <option value="10" selected>10</option>
+                                <option value="15">15</option>
+                                <option value="20">20</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="search-btn" class="search-btn">
+                    Search Courses
+                </button>
+            </div>
+
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Finding the best courses for you...</p>
+            </div>
+
+            <div id="results" class="results"></div>
+        </main>
+
+        <footer>
+            <p>Powered by BM25 + OpenAI Embeddings | Data from JHU SIS API</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
