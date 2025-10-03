@@ -7,6 +7,11 @@ An intelligent course recommendation system for Johns Hopkins University student
 ![OpenAI](https://img.shields.io/badge/OpenAI-text--embedding--3--small-orange.svg)
 ![Anthropic](https://img.shields.io/badge/Anthropic-Claude-purple.svg)
 
+
+## Demo
+
+![Demo][demo.gif]
+
 ## Features
 
 - 🔍 **Hybrid Search**: Combines BM25 keyword matching (30%) and OpenAI embeddings (70%) for optimal results
