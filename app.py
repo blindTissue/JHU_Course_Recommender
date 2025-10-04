@@ -134,14 +134,39 @@ def chat():
         if not courses:
             return jsonify({'error': 'No courses provided'}), 400
 
-        # Build context from courses
+        # Merge courses with same OfferingName to reduce token usage
+        merged_courses = {}
+        for course in courses:
+            offering_name = course.get('offering_name')
+            if offering_name not in merged_courses:
+                merged_courses[offering_name] = course.copy()
+                merged_courses[offering_name]['sections'] = [course.get('section')]
+                merged_courses[offering_name]['levels'] = [course.get('level')]
+                merged_courses[offering_name]['instructors'] = [course.get('instructor')]
+            else:
+                # Merge additional info from other sections
+                if course.get('section') not in merged_courses[offering_name]['sections']:
+                    merged_courses[offering_name]['sections'].append(course.get('section'))
+                if course.get('level') not in merged_courses[offering_name]['levels']:
+                    merged_courses[offering_name]['levels'].append(course.get('level'))
+                if course.get('instructor') not in merged_courses[offering_name]['instructors']:
+                    merged_courses[offering_name]['instructors'].append(course.get('instructor'))
+                # Keep the highest match score
+                if course.get('combined_score', 0) > merged_courses[offering_name].get('combined_score', 0):
+                    merged_courses[offering_name]['combined_score'] = course.get('combined_score', 0)
+
+        # Build context from merged courses
         course_context = []
-        for i, course in enumerate(courses[:10], 1):  # Limit to top 10 for context length
+        for i, course in enumerate(list(merged_courses.values())[:10], 1):  # Limit to top 10 for context length
+            # Format levels and instructors
+            levels = ', '.join(filter(None, course.get('levels', [course.get('level')])))
+            instructors = ', '.join(filter(None, course.get('instructors', [course.get('instructor')])))
+
             course_info = f"""
 Course {i}: {course.get('title')} ({course.get('offering_name')})
 - Department: {course.get('department')}
-- Level: {course.get('level')}
-- Instructor: {course.get('instructor')}
+- Level: {levels}
+- Instructor: {instructors}
 - Credits: {course.get('credits')}
 - Description: {course.get('description', '')[:300]}...
 - Prerequisites: {course.get('prerequisites', ['None'])[0] if course.get('prerequisites') else 'None'}
